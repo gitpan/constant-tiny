@@ -1,4 +1,6 @@
 MANIFEST
+META.yml
+META.json
 Build.PL
 Makefile.PL
 Changes
@@ -8,5 +10,3 @@ lib/constant/tiny.pm
 t/00-load.t
 t/constant.t
 t/pod.t
-META.yml
-META.json

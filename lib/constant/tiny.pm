@@ -1,19 +1,22 @@
 package constant::tiny;
+return 1 if $INC{"constant.pm"};
 $INC{"constant.pm"} = $INC{+__FILE__};
-$VERSION = "1.00";
+$VERSION = "1.01";
 
 package # hide from PAUSE
         constant;
 use 5.010;
 use strict;
 
+
+$constant::VERSION = $constant::tiny::VERSION;
+
 my %forbidden = map +($_, 1), qw<
     BEGIN INIT CHECK END DESTROY AUTOLOAD UNITCHECK
     STDIN STDOUT STDERR ARGV ARGVOUT ENV INC SIG
 >;
 
-my $normal_constant_name = qr/^_?[^\W_0-9]\w*\z/;
-my $tolerable = qr/^[A-Za-z_]\w*\z/;
+my $normal_constant_name = qr/^_?[A-Za-z0-9][A-Za-z0-9_]+\z/;
 
 
 #
@@ -26,7 +29,7 @@ my $tolerable = qr/^[A-Za-z_]\w*\z/;
 # be inlined as a constant, thereby avoiding further sub calling 
 # overhead.
 #
-sub import {
+*import = sub {
     my $class = shift;
     return unless @_;  # ignore "use constant;"
 
@@ -76,7 +79,7 @@ sub import {
     }
 
     mro::method_changed_in($pkg) if $flush_mro;
-}
+};
 
 
 q< IN CONSTANT TIME >
@@ -98,8 +101,8 @@ constant::tiny - Perl pragma to declare constants
 
 =head1 DESCRIPTION
 
-This module is a lightweight version of Perl standard C<constant.pm>.
-Here are the keys differences:
+This module is a lightweight version of the Perl standard module
+C<constant.pm>. Here are the keys differences:
 
 =over
 
@@ -109,29 +112,49 @@ only works on Perl 5.10+ in order to simplify a good part of the code
 
 =item *
 
-doesn't support Unicode name; please use the standard C<constant.pm>
+doesn't support Unicode names; please use the standard C<constant.pm>
 module if you need to create constants with Unicode names
 
 =item *
 
-stricter rules about valid names; standard C<constant.pm> gives more
-detailled diagnostics about why a given name is not valid
+stricter rules about valid names, only allow names with alphanums
+(C<[a-zA-Z0-9]> and underscore (C<_>), allowing one optional leading
+underscore
 
 =back
 
-The rationale behind this module is that recent versions of C<constant.pm>
-have a better support for Unicode names. However, this means loading
-full Unicode support (F<utf8_heavy.pl>) which consumes memory. In most
-cases, the difference is not problematic. But in some particular cases
-(embedded Perl, frequently forked programs a la CGI), the increased
-memory cost can become a concern. This is even more annoying if the
-program doesn't use Unicode at all and therefore pays the high price.
-
-Hence this module, which provides a very simple solution, only requiring
-you to add C<use constant::tiny> B<before> any declaration of constants.
+In order to simplify its usage, C<constant:tiny> uses the normal
+C<constant> API. The main advatange is that switching your code
+to C<constant::tiny> means simply adding it before the first
+C<use constant>. The disadvantage is that, obviously, both modules
+can't be used at the same time. If the normal C<constant> was
+loaded before C<constant::tiny>, the latter won't do anything,
+letting the normal C<constant> do the work.
 
 Other than this, the usage is (nearly) exactly the same as with the
-standard C<constant.pm> module. For more details, please read L<constant>.
+standard C<constant> module. For more details, please read L<constant>.
+
+
+=head2 Rationale
+
+The original reason to write this module was that, starting with
+version 1.24, C<constant> always loaded F<utf8_heavy.pl>, which
+consumes some memory. Usually, this is not problematic, but in
+some particular cases (embedded Perl, frequently forked programs
+I<E<agrave> la> CGI), the increased memory cost can become a concern.
+
+Therefore, this module was written as a alternative solution,
+with no support for Unicode names, so that programs working in
+memory constrained environments could have a better control.
+
+Funnily enough, the day C<constant::tiny> was released on CPAN
+(the code had been written two months earlier as a proof of
+concept), Brad Gilbert proposed a patch for C<constant> in order
+to delay loading F<utf8_heavy.pl> until necessary.
+
+Therefore C<constant::tiny> is less useful (which is good news),
+but can still address specific needs, if you want to restrict
+constant names to alphanums only.
 
 
 =head1 SUPPORT
